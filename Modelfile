@@ -1,0 +1,96 @@
+# Hermes 4.3 36B — tools + thinking enabled (Llama-3 chat format), Q8_0
+#
+# Maintained by Monomyth Development.
+#
+# Why this exists: many community GGUF/Ollama uploads of Hermes-4.3-36B advertise
+# only `completion` capability because their Modelfile ships the wrong chat template
+# — frequently ChatML (<|im_start|>/<|im_end|>), which is the Hermes-4 *14B* format.
+# Hermes 4.3 *36B* is Llama-3 (<|start_header_id|>/<|eot_id|>). The weights are
+# already fully tool-trained; the gap is purely the template. This Modelfile applies
+# the correct Llama-3 template with the .Tools and .IsThinkSet/.Think conditionals,
+# which is what flips `ollama show` Capabilities to include `tools` + `thinking`.
+#
+# Template adapted from steelpuddles/hermes-4.3-36B:thinking-tools (Apache-2.0).
+# Lineage: ByteDance Seed-OSS-36B-Base -> NousResearch Hermes-4.3-36B -> Q8_0 GGUF.
+# See README.md and NOTICE for full attribution.
+#
+# Build:  ollama create hermes-4.3-36b-tools -f Modelfile
+# Verify: ollama show hermes-4.3-36b-tools   # Capabilities: completion, tools, thinking
+
+# Pulls the official Nous Q8_0 GGUF directly from Hugging Face (recent Ollama).
+# Alternative (offline): download the .gguf and use `FROM ./Hermes-4.3-36B-Q8_0.gguf`.
+FROM hf.co/NousResearch/Hermes-4.3-36B-GGUF:Q8_0
+
+TEMPLATE """{{- if .Tools }}<|start_header_id|>system<|end_header_id|>
+
+{{ if .System }}{{ .System }}{{ else if and .IsThinkSet .Think }}You are a deep thinking AI, you may use extremely long chains of thought to deeply consider the problem and deliberate with yourself via systematic reasoning processes to help come to a correct solution prior to answering. You should enclose your thoughts and internal monologue inside <think> </think> tags, and then provide your solution or response to the problem.{{ else }}You are Hermes, created by Nous Research.{{ end }}
+
+# Tools
+
+You are a function calling AI model. You may call one or more functions to assist with the user query.
+
+You are provided with function signatures within <tools></tools> XML tags:
+
+<tools>
+{{- range .Tools }}
+{{ .Function | json }}
+{{- end }}
+</tools>
+
+For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:
+
+<tool_call>
+{"name": "<function-name>", "arguments": <args-json-object>}
+</tool_call><|eot_id|>
+{{- else if .System }}<|start_header_id|>system<|end_header_id|>
+
+{{ .System }}<|eot_id|>
+{{- else if and .IsThinkSet .Think }}<|start_header_id|>system<|end_header_id|>
+
+You are a deep thinking AI, you may use extremely long chains of thought to deeply consider the problem and deliberate with yourself via systematic reasoning processes to help come to a correct solution prior to answering. You should enclose your thoughts and internal monologue inside <think> </think> tags, and then provide your solution or response to the problem.<|eot_id|>
+{{- else }}<|start_header_id|>system<|end_header_id|>
+
+You are Hermes, created by Nous Research.<|eot_id|>
+{{- end }}
+{{- range $i, $_ := .Messages }}
+{{- if eq .Role "user" }}<|start_header_id|>user<|end_header_id|>
+
+{{ .Content }}<|eot_id|>
+{{- else if eq .Role "assistant" }}<|start_header_id|>assistant<|end_header_id|>
+{{- if .Thinking }}
+
+<think>
+{{ .Thinking }}
+</think>
+{{- end }}
+{{- if .Content }}
+
+{{ .Content }}
+{{- end }}
+{{- if .ToolCalls }}
+{{- range .ToolCalls }}
+
+<tool_call>
+{"name": "{{ .Function.Name }}", "arguments": {{ .Function.Arguments | json }}}
+</tool_call>
+{{- end }}
+{{- end }}<|eot_id|>
+{{- else if eq .Role "tool" }}<|start_header_id|>user<|end_header_id|>
+
+<tool_response>
+{{ .Content }}
+</tool_response><|eot_id|>
+{{- end }}
+{{- end }}<|start_header_id|>assistant<|end_header_id|>"""
+
+# Agent loops need headroom; the stock 4096/8192 truncates <tools> definitions.
+PARAMETER num_ctx 32768
+
+# Llama-3 stops (NOT ChatML <|im_end|>/<|im_start|>).
+PARAMETER stop "<|eot_id|>"
+PARAMETER stop "<|end_of_text|>"
+
+# Nous non-reasoning sampling defaults.
+PARAMETER temperature 0.6
+PARAMETER top_p 0.95
+PARAMETER top_k 20

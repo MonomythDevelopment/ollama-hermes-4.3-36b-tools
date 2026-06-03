@@ -1,0 +1,22 @@
+hermes-4.3-36b-tools
+Copyright 2026 Monomyth Development
+
+This product packages and configures third-party model weights and templates.
+It contains no model weights of its own; it provides an Ollama Modelfile,
+chat-template configuration, and documentation.
+
+Components and their licenses:
+
+- ByteDance Seed-OSS-36B-Base — base model, Apache License 2.0.
+  https://huggingface.co/ByteDance-Seed/Seed-OSS-36B-Base
+
+- NousResearch Hermes-4.3-36B — fine-tuned model and GGUF quants, Apache License 2.0.
+  https://huggingface.co/NousResearch/Hermes-4.3-36B
+  https://huggingface.co/NousResearch/Hermes-4.3-36B-GGUF
+
+- steelpuddles/hermes-4.3-36B:thinking-tools — Llama-3 chat template reference,
+  Apache License 2.0.
+  https://ollama.com/steelpuddles/hermes-4.3-36B
+
+Each component remains under its own copyright and license. This packaging is
+distributed under the Apache License 2.0; see the LICENSE file.
