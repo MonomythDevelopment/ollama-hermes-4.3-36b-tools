@@ -111,6 +111,20 @@ ollama push   MonomythDevelopment/hermes-4.3-36b-tools
 
 The Ollama registry holds the built, distributable artifact; this git repo is the
 human-readable, versioned source of truth. Tag changelog entries to each registry push.
+[`ollama-readme.md`](./ollama-readme.md) is the registry model-page description (paste it into
+the model's description on ollama.com).
+
+Finishing touches (all optional):
+
+- **Embed the license in the artifact.** Add a `LICENSE """…"""` instruction to the published
+  Modelfile so the Apache-2.0 text travels with the registry artifact — community-idiomatic for
+  a give-back.
+- **Tags.** `:latest` is enough; push a `:q8_0` tag to make the quant explicit if you later add
+  other quants.
+- **Verify the publish.** After pushing, confirm the model page shows `tools` + `thinking`
+  capabilities and that a fresh `ollama pull MonomythDevelopment/hermes-4.3-36b-tools` works.
+- **No weights in git.** The ~38 GB GGUF lives only on the Ollama registry — never commit it
+  here.
 
 ## License
 
